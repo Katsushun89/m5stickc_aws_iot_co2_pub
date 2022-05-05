@@ -1,0 +1,2 @@
+# m5stickc_aws_iot_co2_pub
+CO2センサーと通信するM5StickCのAWS IOTのpublisher
