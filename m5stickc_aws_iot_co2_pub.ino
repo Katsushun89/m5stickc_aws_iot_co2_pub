@@ -6,15 +6,25 @@
 #include "time.h"
 #include "src/config.h"
 #include "src/cert.h"
+#include "src/mhz19b.h"
 
-const uint32_t ALARM_WAIT_SEC = 1000 * 60;
+const uint32_t ALARM_WAIT_SEC = 1000 * 60 * 1;
 
 WiFiClientSecure https_client;
 PubSubClient mqtt_client(https_client);
+MHZ19B mhz19b;
 
 void setupCO2Sensor()
 {
+  //mhz19b = machine.UART(1, tx=0, rx=36)  # for Rev0.2
+  //mhz19b.init(9600, bits=8, parity=None, stop=1)
+  mhz19b.setup(&Serial1, 26, 0);
+}
 
+uint16_t readCO2() {
+  uint16_t co2_concentration = mhz19b.read();
+  M5.Lcd.printf("%d [ppm]\n", co2_concentration);
+  return co2_concentration;
 }
 
 void setup()
@@ -107,7 +117,7 @@ uint32_t getTime() {
   return now;
 }
 
-void printStatus()
+void printMenu()
 {
   M5.Lcd.setCursor(0, 0, 2);
   M5.Lcd.println("CO2 Sensor");
@@ -116,12 +126,14 @@ void printStatus()
 void loop()
 {
   M5.update();  // ボタン状態更新
-  printStatus();
+  printMenu();
+  uint16_t co2_concentration = readCO2();
+
   StaticJsonDocument<2000> json_document;
   char json_string[1000];
   json_document["device_name"] = "co2stickc01";
   json_document["type"] = "co2sensor";
-  json_document["co2"] = 500;
+  json_document["co2_concentration"] = co2_concentration;
   json_document["timestamp"] = getTime();
 
   serializeJson(json_document, json_string);
