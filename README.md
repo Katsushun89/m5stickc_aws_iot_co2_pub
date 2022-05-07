@@ -6,15 +6,21 @@ CO2センサーと通信するM5StickCのAWS IOTのpublisher
 
 ## 構成
 HW構成はM5StickC+CO2 Hatを想定する
+
+![image](https://user-images.githubusercontent.com/43918797/167242969-6ed78029-6b6a-48a6-ad1d-cc4b1e81c288.png)
+
+
 CO2 HatにはCO2センサーMH-Z19B or MH-Z19Cを搭載している想定
 
 CO2 Hatに関してはリンク先を参照
+
 [CO2 Hat](https://kitto-yakudatsu.com/archives/7766)
 
 ## 機能
 - 10分間隔でAWS IoTにCO2情報をpublishする
 
 - Lcd上には1分おきに更新したCO2濃度を表示する
+  - 濃度が1000[ppm]以上になると赤文字になる
 
 
 ## 認証情報
