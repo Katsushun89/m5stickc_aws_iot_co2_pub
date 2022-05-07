@@ -14,16 +14,22 @@ WiFiClientSecure https_client;
 PubSubClient mqtt_client(https_client);
 MHZ19B mhz19b;
 
+StaticJsonDocument<2000> json_document;
+
 void setupCO2Sensor()
 {
-  //mhz19b = machine.UART(1, tx=0, rx=36)  # for Rev0.2
-  //mhz19b.init(9600, bits=8, parity=None, stop=1)
   mhz19b.setup(&Serial1, 26, 0);
 }
 
 uint16_t readCO2() {
   uint16_t co2_concentration = mhz19b.read();
-  M5.Lcd.printf("%d [ppm]\n", co2_concentration);
+  if (co2_concentration >= 1000){
+    M5.Lcd.setTextColor(RED, BLACK);
+  }
+  M5.Lcd.printf("%04d [ppm]\n", co2_concentration);
+  M5.Lcd.setTextColor(WHITE, BLACK);
+
+  Serial.printf("%d [ppm]\n", co2_concentration);
   return co2_concentration;
 }
 
@@ -35,6 +41,7 @@ void setup()
   M5.Lcd.setRotation(3);
   M5.Lcd.fillScreen(BLACK);
   M5.Lcd.setCursor(0, 0, 2);
+  M5.Lcd.setTextSize(2);
 
 
   setupCO2Sensor();
@@ -127,17 +134,24 @@ void loop()
 {
   M5.update();  // ボタン状態更新
   printMenu();
+
+  char json_string[1000];
   uint16_t co2_concentration = readCO2();
 
-  StaticJsonDocument<2000> json_document;
-  char json_string[1000];
-  json_document["device_name"] = "co2stickc01";
-  json_document["type"] = "co2sensor";
-  json_document["co2_concentration"] = co2_concentration;
-  json_document["timestamp"] = getTime();
+  static uint32_t last_pub_time = 0;
+  uint32_t current_time = getTime();
+  if((current_time - last_pub_time) >= 60 * 10){ //10min
+    connectAWSIOT();
+    json_document["device_name"] = "co2stickc01";
+    json_document["type"] = "CO2sensor";
+    json_document["co2_concentration"] = co2_concentration;
+    json_document["timestamp"] = current_time;
 
-  serializeJson(json_document, json_string);
-  Serial.println(json_string);
-  mqtt_client.publish(TOPIC, json_string);
+    serializeJson(json_document, json_string);
+    Serial.println(json_string);
+    bool ret = mqtt_client.publish(TOPIC, json_string);
+    Serial.printf("pub ret %d\n", ret);
+    last_pub_time = current_time;
+  }
   delay(ALARM_WAIT_SEC);
 }
